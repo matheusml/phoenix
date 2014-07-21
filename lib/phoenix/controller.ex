@@ -48,7 +48,7 @@ defmodule Phoenix.Controller do
 
       def init(options), do: options
       @before_compile unquote(__MODULE__)
-      use Plug.Builder
+      use Phoenix.Plugs.Builder
       unless @options[:bare] do
         plug Plugs.ParamsFetcher
         plug Plugs.ContentTypeFetcher
