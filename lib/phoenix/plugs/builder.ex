@@ -18,31 +18,31 @@ defmodule Phoenix.Plugs.Builder do
       use Plug.Builder
       import unquote(__MODULE__)
 
-      def scoped(conn, {plug, actions}), do: scoped(conn, {plug, [], actions})
-      def scoped(conn, {plug, opts, only: actions}) when is_list actions do
+      defp scoped(conn, {plug, actions}), do: scoped(conn, {plug, [], actions})
+      defp scoped(conn, {plug, opts, only: actions}) when is_list actions do
         if Connection.action_name(conn) in actions do
-          if module_plug?(plug) do
-            apply(plug, :call, [conn, opts])
-          else
-            apply(__MODULE__, plug, [conn, opts])
-          end
+          invoke_plug(conn, plug, opts)
         else
           conn
         end
       end
-      def scoped(conn, {plug, opts, except: actions}) when is_list actions do
+      defp scoped(conn, {plug, opts, except: actions}) when is_list actions do
         if not(Connection.action_name(conn) in actions) do
-          if module_plug?(plug) do
-            apply(plug, :call, [conn, opts])
-          else
-            apply(__MODULE__, plug, [conn, opts])
-          end
+          invoke_plug(conn, plug, opts)
         else
           conn
         end
       end
-      def scoped(_conn, {_plug, _opts, _}) do
+      defp scoped(_conn, {_plug, _opts, _}) do
         raise "Expected scoped plug to define `:only` or `:except` actions list"
+      end
+
+      defp invoke_plug(conn, plug, opts) do
+        if module_plug?(plug) do
+          apply(plug, :call, [conn, opts])
+        else
+          apply(__MODULE__, plug, [conn, opts])
+        end
       end
     end
   end
