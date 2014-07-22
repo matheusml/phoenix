@@ -42,7 +42,7 @@ defmodule Phoenix.Plugs.Builder do
         end
       end
       def scoped(_conn, {_plug, _opts, _}) do
-        raise "Excepted scoped plug to define `:only` or `:except` actions list"
+        raise "Expected scoped plug to define `:only` or `:except` actions list"
       end
     end
   end

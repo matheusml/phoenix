@@ -2,6 +2,10 @@ defmodule Phoenix.Controller.ConditionalPlugsTest do
   use ExUnit.Case
   use PlugHelper
 
+  defmodule ModulePlug do
+    def init(opts), do: opts
+    def call(conn, _), do: Plug.Conn.assign(conn, :module_plug, true)
+  end
 
   defmodule OnlyController do
     use Phoenix.Controller
@@ -9,6 +13,7 @@ defmodule Phoenix.Controller.ConditionalPlugsTest do
     plug :scoped, {:pub_func_plug, [],     only: [:index]}
     plug :scoped, {:pub_func_plug_no_opts, only: [:index]}
     plug :scoped, {:priv_func_plug, [],    only: [:index]}
+    plug :scoped, {ModulePlug,             only: [:index]}
     plug :action
 
     def index(conn, _) do
@@ -38,6 +43,7 @@ defmodule Phoenix.Controller.ConditionalPlugsTest do
     plug :scoped, {:pub_func_plug, [],     except: [:index]}
     plug :scoped, {:pub_func_plug_no_opts, except: [:index]}
     plug :scoped, {:priv_func_plug, [],    except: [:index]}
+    plug :scoped, {ModulePlug,             except: [:index]}
     plug :action
 
     def index(conn, _) do
@@ -45,6 +51,10 @@ defmodule Phoenix.Controller.ConditionalPlugsTest do
     end
 
     def show(conn, _) do
+      conn
+    end
+
+    def missing(conn, _) do
       conn
     end
 
@@ -61,6 +71,18 @@ defmodule Phoenix.Controller.ConditionalPlugsTest do
     end
   end
 
+  defmodule MalformedScopedController do
+    use Phoenix.Controller
+
+    plug :scoped, {:assign_layout, "print", foo: [:index]}
+    plug :action
+
+    def index(conn, _) do
+      conn
+    end
+  end
+
+
   defmodule Router do
     use Phoenix.Router
     get "/only/only_with_public_func", OnlyController, :index
@@ -68,6 +90,7 @@ defmodule Phoenix.Controller.ConditionalPlugsTest do
 
     get "/except/index", ExceptController, :index
     get "/except/show", ExceptController, :show
+    get "/malformed/index", MalformedScopedController, :index
 
   end
 
@@ -75,28 +98,34 @@ defmodule Phoenix.Controller.ConditionalPlugsTest do
     conn = simulate_request(Router, :get, "/only/only_with_public_func")
     assert conn.assigns[:pub_func_plug]
     assert conn.assigns[:priv_func_plug]
+    assert conn.assigns[:module_plug]
 
     conn = simulate_request(Router, :get, "/only/no_conditionals")
     refute conn.assigns[:pub_func_plug]
     refute conn.assigns[:priv_func_plug]
+    refute conn.assigns[:module_plug]
   end
 
   test "scoped/2 `only:` without options allows function plug to be scoped to specific actions" do
     conn = simulate_request(Router, :get, "/only/only_with_public_func")
     assert conn.assigns[:pub_func_plug_no_opts]
+    assert conn.assigns[:module_plug]
 
     conn = simulate_request(Router, :get, "/only/no_conditionals")
     refute conn.assigns[:pub_func_plug_no_opts]
+    refute conn.assigns[:module_plug]
   end
 
   test "scoped/2 `except:` allows function plug to be excluded from actions" do
     conn = simulate_request(Router, :get, "/except/index")
     refute conn.assigns[:pub_func_plug]
     refute conn.assigns[:priv_func_plug]
+    refute conn.assigns[:module_plug]
 
     conn = simulate_request(Router, :get, "/except/show")
     assert conn.assigns[:pub_func_plug]
     assert conn.assigns[:priv_func_plug]
+    assert conn.assigns[:module_plug]
   end
 
   test "scoped/2 `except:` without options allows function plug to be excluded from actions" do
@@ -107,4 +136,8 @@ defmodule Phoenix.Controller.ConditionalPlugsTest do
     assert conn.assigns[:pub_func_plug_no_opts]
   end
 
+  test "scoped/2 raises an error with only or except key is missing" do
+    conn = simulate_request(Router, :get, "/malformed/index")
+    assert conn.status == 500
+  end
 end
