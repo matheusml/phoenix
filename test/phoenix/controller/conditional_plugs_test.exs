@@ -32,7 +32,7 @@ defmodule Phoenix.Controller.ConditionalPlugsTest do
       assign(conn, :pub_func_plug_no_opts, true)
     end
 
-    def priv_func_plug(conn, _) do
+    defp priv_func_plug(conn, _) do
       assign(conn, :priv_func_plug, true)
     end
   end
@@ -66,7 +66,7 @@ defmodule Phoenix.Controller.ConditionalPlugsTest do
       assign(conn, :pub_func_plug_no_opts, true)
     end
 
-    def priv_func_plug(conn, _) do
+    defp priv_func_plug(conn, _) do
       assign(conn, :priv_func_plug, true)
     end
   end

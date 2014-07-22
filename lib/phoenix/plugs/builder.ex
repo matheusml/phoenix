@@ -17,18 +17,52 @@ defmodule Phoenix.Plugs.Builder do
     quote do
       use Plug.Builder
       import unquote(__MODULE__)
+      @before_compile unquote(__MODULE__)
+    end
+  end
 
+  @doc """
+  Returns the AST for def invoke_plug/1 to invoke any public or private function plug
+  or Module plugs
+  """
+  def definvoke_plug(plug, :module) do
+    quote do
+      defp invoke_plug(mod = unquote(plug), conn, opts) do
+        mod.call(conn, opts)
+      end
+    end
+  end
+  def definvoke_plug(plug, :function) do
+    quote do
+      defp invoke_plug(unquote(plug), conn, opts) do
+        unquote(plug)(conn, opts)
+      end
+    end
+  end
+
+  defmacro __before_compile__(env) do
+    invoke_plugs_ast = for plug <- Module.get_attribute(env.module, :plugs) do
+      case plug do
+        {:scoped, {func, _}}    -> definvoke_plug(func, plug_type(func))
+        {:scoped, {func, _, _}} -> definvoke_plug(func, plug_type(func))
+        _ -> nil
+      end
+    end
+
+    quote do
+      unquote(invoke_plugs_ast)
+      defp invoke_plug(plug, conn, opts), do: :noop
       defp scoped(conn, {plug, actions}), do: scoped(conn, {plug, [], actions})
       defp scoped(conn, {plug, opts, only: actions}) when is_list actions do
         if Connection.action_name(conn) in actions do
-          invoke_plug(conn, plug, opts)
+          invoke_plug(plug, conn, opts)
         else
           conn
         end
       end
       defp scoped(conn, {plug, opts, except: actions}) when is_list actions do
         if not(Connection.action_name(conn) in actions) do
-          invoke_plug(conn, plug, opts)
+          invoke_plug(plug, conn, opts)
         else
           conn
         end
@@ -36,30 +70,26 @@ defmodule Phoenix.Plugs.Builder do
       defp scoped(_conn, {_plug, _opts, _}) do
         raise "Expected scoped plug to define `:only` or `:except` actions list"
       end
-
-      defp invoke_plug(conn, plug, opts) do
-        if module_plug?(plug) do
-          apply(plug, :call, [conn, opts])
-        else
-          apply(__MODULE__, plug, [conn, opts])
-        end
-      end
     end
   end
 
   @doc """
-  Returns true if provided atom Plug is a Module
+  Returns the Actom Plug type
 
   ## Examples
 
-      iex> Builder.module_plug? Authenticate
-      true
+      iex> Builder.plug_type Authenticate
+      :module
 
-      iex> Builder.module_plug? :authenticate
-      false
+      iex> Builder.plug_type :authenticate
+      :function
 
   """
-  def module_plug?(plug) do
-    match?('Elixir.' ++ _rest, Atom.to_char_list(plug))
+  def plug_type(plug) do
+    if match?('Elixir.' ++ _rest, Atom.to_char_list(plug)) do
+      :module
+    else
+      :function
+    end
   end
 end
