@@ -20,7 +20,7 @@ defmodule Phoenix.Plugs.Builder do
 
       def scoped(conn, {plug, actions}), do: scoped(conn, {plug, [], actions})
       def scoped(conn, {plug, opts, only: actions}) when is_list actions do
-        if not(Connection.action_name(conn) in actions) do
+        if Connection.action_name(conn) in actions do
           if module_plug?(plug) do
             apply(plug, :call, [conn, opts])
           else
@@ -31,7 +31,7 @@ defmodule Phoenix.Plugs.Builder do
         end
       end
       def scoped(conn, {plug, opts, except: actions}) when is_list actions do
-        if Connection.action_name(conn) in actions do
+        if not(Connection.action_name(conn) in actions) do
           if module_plug?(plug) do
             apply(plug, :call, [conn, opts])
           else
