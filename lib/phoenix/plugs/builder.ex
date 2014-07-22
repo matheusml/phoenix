@@ -31,6 +31,10 @@ defmodule Phoenix.Plugs.Builder do
         my_private_function(conn, opts)
       end
 
+      defp invoke_plug(Plugs.ModulePlug, conn, opts) do
+        Plugs.ModulePlug.call(conn, opts)
+      end
+
   """
   def definvoke_plug(plug, :module) do
     quote do
