@@ -22,8 +22,15 @@ defmodule Phoenix.Plugs.Builder do
   end
 
   @doc """
-  Returns the AST for def invoke_plug/1 to invoke any public or private function plug
+  Returns the AST for def invoke_plug/3 to invoke any public or private function plug
   or Module plugs
+
+  ## Examples
+
+      defp invoke_plug(:my_private_function, conn, opts) do
+        my_private_function(conn, opts)
+      end
+
   """
   def definvoke_plug(plug, :module) do
     quote do
@@ -74,7 +81,7 @@ defmodule Phoenix.Plugs.Builder do
   end
 
   @doc """
-  Returns the Actom Plug type
+  Returns the Atom Plug type
 
   ## Examples
 
