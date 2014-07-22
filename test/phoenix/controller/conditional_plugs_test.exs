@@ -6,9 +6,9 @@ defmodule Phoenix.Controller.ConditionalPlugsTest do
   defmodule OnlyController do
     use Phoenix.Controller
 
-    plug :only, {:pub_func_plug, [],     [:index]}
-    plug :only, {:pub_func_plug_no_opts, [:index]}
-    plug :only, {:priv_func_plug, [],    [:index]}
+    plug :scoped, {:pub_func_plug, [],     only: [:index]}
+    plug :scoped, {:pub_func_plug_no_opts, only: [:index]}
+    plug :scoped, {:priv_func_plug, [],    only: [:index]}
     plug :action
 
     def index(conn, _) do
@@ -35,9 +35,9 @@ defmodule Phoenix.Controller.ConditionalPlugsTest do
   defmodule ExceptController do
     use Phoenix.Controller
 
-    plug :except, {:pub_func_plug, [],     [:index]}
-    plug :except, {:pub_func_plug_no_opts, [:index]}
-    plug :except, {:priv_func_plug, [],    [:index]}
+    plug :scoped, {:pub_func_plug, [],     except: [:index]}
+    plug :scoped, {:pub_func_plug_no_opts, except: [:index]}
+    plug :scoped, {:priv_func_plug, [],    except: [:index]}
     plug :action
 
     def index(conn, _) do
@@ -71,7 +71,7 @@ defmodule Phoenix.Controller.ConditionalPlugsTest do
 
   end
 
-  test "only/2 with options allows function plug to be scoped to specific actions" do
+  test "scoped/2 `only:` allows function plug to be scoped to specific actions" do
     conn = simulate_request(Router, :get, "/only/only_with_public_func")
     assert conn.assigns[:pub_func_plug]
     assert conn.assigns[:priv_func_plug]
@@ -81,7 +81,7 @@ defmodule Phoenix.Controller.ConditionalPlugsTest do
     refute conn.assigns[:priv_func_plug]
   end
 
-  test "only/2 without options allows function plug to be scoped to specific actions" do
+  test "scoped/2 `only:` without options allows function plug to be scoped to specific actions" do
     conn = simulate_request(Router, :get, "/only/only_with_public_func")
     assert conn.assigns[:pub_func_plug_no_opts]
 
@@ -89,7 +89,7 @@ defmodule Phoenix.Controller.ConditionalPlugsTest do
     refute conn.assigns[:pub_func_plug_no_opts]
   end
 
-  test "except/2 with options allows function plug to be excluded from actions" do
+  test "scoped/2 `except:` allows function plug to be excluded from actions" do
     conn = simulate_request(Router, :get, "/except/index")
     refute conn.assigns[:pub_func_plug]
     refute conn.assigns[:priv_func_plug]
@@ -99,7 +99,7 @@ defmodule Phoenix.Controller.ConditionalPlugsTest do
     assert conn.assigns[:priv_func_plug]
   end
 
-  test "except/2 without options allows function plug to be excluded from actions" do
+  test "scoped/2 `except:` without options allows function plug to be excluded from actions" do
     conn = simulate_request(Router, :get, "/except/index")
     refute conn.assigns[:pub_func_plug_no_opts]
 

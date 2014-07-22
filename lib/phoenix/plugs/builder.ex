@@ -2,15 +2,15 @@ defmodule Phoenix.Plugs.Builder do
   alias Phoenix.Controller.Connection
 
   @moduledoc """
-  Provides Plug.Builder wrapper that injects local functions to conditionally
+  Provides Plug.Builder wrapper that injects local `:scoped` plug to conditionally
   execute plugs based on Controller action of Conn
 
   ## Examples
 
       plug :assign_layout, "print"
-      plug :only,   {:authenticate, [:create, update]}
+      plug :scoped, {:authenticate, only: [:create, update]}
       plug :action
-      plug :except, {:render, [:edit]}
+      plug :scoped, {:render, except: [:edit]}
 
   """
   defmacro __using__(_) do
@@ -18,8 +18,8 @@ defmodule Phoenix.Plugs.Builder do
       use Plug.Builder
       import unquote(__MODULE__)
 
-      def except(conn, {plug, actions}), do: except(conn, {plug, [], actions})
-      def except(conn, {plug, opts, actions}) do
+      def scoped(conn, {plug, actions}), do: scoped(conn, {plug, [], actions})
+      def scoped(conn, {plug, opts, only: actions}) when is_list actions do
         if not(Connection.action_name(conn) in actions) do
           if module_plug?(plug) do
             apply(plug, :call, [conn, opts])
@@ -30,9 +30,7 @@ defmodule Phoenix.Plugs.Builder do
           conn
         end
       end
-
-      def only(conn, {plug, actions}), do: only(conn, {plug, [], actions})
-      def only(conn, {plug, opts, actions}) do
+      def scoped(conn, {plug, opts, except: actions}) when is_list actions do
         if Connection.action_name(conn) in actions do
           if module_plug?(plug) do
             apply(plug, :call, [conn, opts])
@@ -42,6 +40,9 @@ defmodule Phoenix.Plugs.Builder do
         else
           conn
         end
+      end
+      def scoped(_conn, {_plug, _opts, _}) do
+        raise "Excepted scoped plug to define `:only` or `:except` actions list"
       end
     end
   end
